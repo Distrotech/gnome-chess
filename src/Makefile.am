@@ -10,7 +10,7 @@ gnome_chess_SOURCES = \
 	glu.vapi \
 	glx.vapi \
 	3ds.vala \
-	gnome-chess.vala \
+	gnome-chess-application.vala \
 	ai-profile.vala \
 	chess-bitboard.vala \
 	chess-clock.vala \
