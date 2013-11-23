@@ -1,51 +1,25 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ * Copyright (C) 2013 Michael Catanzaro
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 public class ChessClock : Object
 {
-    private uint _white_duration;
-    public uint white_duration
-    {
-        get { return _white_duration; }
-    }
-    private uint _black_duration;
-    public uint black_duration
-    {
-        get { return _black_duration; }
-    }
+    public int white_initial_seconds { get; private set; }
 
-    private uint _white_used;
-    public uint white_used
-    {
-        get
-        {
-            if (active_color == Color.WHITE)
-                return _white_used + (uint) (timer.elapsed () * 1000);
-            else
-                return _white_used;
-        }
-    }
+    public int black_initial_seconds { get; private set; }
 
-    public uint white_used_in_seconds
-    {
-        get { return (white_used + 500) / 1000; }
-    }
+    public int white_seconds_used { get; private set; default = 0; }
 
-    private uint _black_used;
-    public uint black_used
-    {
-        get
-        {
-            if (active_color == Color.WHITE)
-                return _black_used;
-            else
-                return _black_used + (uint) (timer.elapsed () * 1000);
-        }
-    }
+    public int black_seconds_used { get; private set; default = 0; }
 
-    public uint black_used_in_seconds
-    {
-        get { return (black_used + 500) / 1000; }
-    }
-
-    public Color _active_color = Color.WHITE;
+    private Color _active_color = Color.WHITE;
     public Color active_color
     {
         get { return _active_color; }
@@ -60,43 +34,40 @@ public class ChessClock : Object
         }
     }
 
-    private Timer timer;
-    private uint expire_timeout = 0;
-    private uint tick_timeout = 0;
+    private Timer? timer;
+    private uint expire_timeout_id = 0;
+    private uint tick_timeout_id = 0;
 
     public signal void tick ();
     public signal void expired ();
 
-    public ChessClock (uint white_duration, uint black_duration, uint white_used = 0, uint black_used = 0)
+    public ChessClock (int white_initial_seconds, int black_initial_seconds)
     {
-        _white_duration = white_duration * 1000;
-        _black_duration = black_duration * 1000;
-        _white_used = white_used;
-        _black_used = black_used;
-        timer = new Timer ();
+        this.white_initial_seconds = white_initial_seconds;
+        this.black_initial_seconds = black_initial_seconds;
     }
-    
-    private bool is_started
+
+    private bool is_active
     {
-        get { return expire_timeout != 0; }
+        get { return timer != null && expire_timeout_id != 0; }
     }
     
     public void start ()
     {
-        if (is_started)
+        if (is_active)
             return;
 
-        /* Start stopwatch */
-        timer.start ();
-
-        /* Notify when this timer has expired */
-        if (active_color == Color.WHITE)
-            expire_timeout = Timeout.add (white_duration - _white_used, timer_expired_cb);
+        if (timer == null)
+        {
+            /* Starts automatically */
+            timer = new Timer ();
+        }
         else
-            expire_timeout = Timeout.add (black_duration - _black_used, timer_expired_cb);
+        {
+            timer.start ();
+        }
 
-        /* Wake up each second */
-        tick_cb ();
+        watch_timer ();
     }
 
     private bool timer_expired_cb ()
@@ -108,46 +79,62 @@ public class ChessClock : Object
 
     private bool tick_cb ()
     {
-        if (tick_timeout != 0)
-            tick ();
-
-        uint elapsed = (uint) (timer.elapsed () * 1000);
-        uint used;
         if (active_color == Color.WHITE)
-            used = _white_used + elapsed;
+            white_seconds_used++;
         else
-            used = _black_used + elapsed;
-        var next_tick_time = ((used / 1000) + 1) * 1000;
-        tick_timeout = Timeout.add (next_tick_time - used, tick_cb);
+            black_seconds_used++;
 
-        return false;
+        tick ();
+
+        return true;
     }
 
     public void stop ()
     {
-        if (!is_started)
+        if (!is_active)
             return;
 
         timer.stop ();
-        Source.remove (expire_timeout);
-        expire_timeout = 0;
-        Source.remove (tick_timeout);
-        tick_timeout = 0;
+        stop_watching_timer ();
+    }
 
-        var elapsed = (uint) (timer.elapsed () * 1000);
+    public void pause ()
+    {
+        if (!is_active)
+            return;
+
+        timer.stop ();
+        stop_watching_timer ();
+    }
+
+    public void unpause ()
+    {
+        if (timer == null || is_active)
+            return;
+
+        timer.@continue ();
+        watch_timer ();
+    }
+
+    private void watch_timer ()
+    {
+        /* Notify when this timer has expired */
         if (active_color == Color.WHITE)
-        {
-            _white_used += elapsed;
-            if (_white_used > white_duration)
-                _white_used = white_duration;
-        }
+            expire_timeout_id = Timeout.add_seconds (white_initial_seconds - white_seconds_used,
+                                                     timer_expired_cb);
         else
-        {
-            _black_used += elapsed;
-            if (_black_used > black_duration)
-                _black_used = black_duration;
-        }
+            expire_timeout_id = Timeout.add_seconds (black_initial_seconds - black_seconds_used,
+                                                     timer_expired_cb);
 
-        timer.reset ();
+        /* Wake up each second */
+        tick_timeout_id = Timeout.add_seconds (1, tick_cb);
+    }
+
+    private void stop_watching_timer ()
+    {
+        Source.remove (expire_timeout_id);
+        expire_timeout_id = 0;
+        Source.remove (tick_timeout_id);
+        tick_timeout_id = 0;
     }
 }

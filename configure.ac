@@ -1,14 +1,17 @@
-AC_INIT(gnome-chess, 3.7.2)
-LT_INIT
-
+AC_PREREQ([2.63])
+AC_INIT([gnome-chess],[3.11.2])
+AC_CONFIG_SRCDIR([src/gnome-chess.vala])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE([1.11 no-dist-gzip dist-xz foreign])
 AM_SILENT_RULES([yes])
-AM_MAINTAINER_MODE
+AM_MAINTAINER_MODE([enable])
+
+LT_INIT
+
 GNOME_MAINTAINER_MODE_DEFINES
- 
-AM_PROG_VALAC([0.16.0])
+
+AM_PROG_VALAC([0.22])
 AM_PROG_CC_C_O
 
 GLIB_GSETTINGS
@@ -26,7 +29,6 @@ PKG_CHECK_MODULES(GNOME_CHESS, [
   gmodule-2.0
   gtk+-3.0 >= $GTK_REQUIRED
   librsvg-2.0 >= $RSVG_REQUIRED
-  sqlite3
   gl
   glu
   x11
@@ -35,6 +37,9 @@ PKG_CHECK_MODULES(GNOME_CHESS, [
 PKG_CHECK_MODULES(TEST, [
   gio-2.0
 ])
+
+AC_PATH_PROG([APPDATA_VALIDATE], [appdata-validate], [/bin/true])
+AC_PATH_PROG([DESKTOP_FILE_VALIDATE], [desktop-file-validate], [/bin/true])
 
 dnl ###########################################################################
 dnl Enable Networking
@@ -82,7 +87,7 @@ dnl ###########################################################################
 dnl Internationalization
 dnl ###########################################################################
 
-IT_PROG_INTLTOOL([0.35.0])
+IT_PROG_INTLTOOL([0.50])
 AC_SUBST(GETTEXT_PACKAGE, gnome-chess)
 
 dnl ###########################################################################
@@ -95,7 +100,7 @@ dnl ###########################################################################
 dnl Files to generate
 dnl ###########################################################################
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 data/Makefile
 data/icons/Makefile
@@ -104,13 +109,13 @@ data/pieces/3d/Makefile
 data/pieces/fancy/Makefile
 data/pieces/simple/Makefile
 data/textures/Makefile
-data/gnome-chess.desktop.in
 help/Makefile
 po/Makefile.in
 src/Makefile
 libgames-contacts/Makefile
 tests/Makefile
 ])
+AC_OUTPUT
 
 echo "
 Configuration:
@@ -121,4 +126,3 @@ Configuration:
 echo "
     Networking enabled:    ${networking}
 "
-

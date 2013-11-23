@@ -1,13 +1,26 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 public class ChessEngineUCI : ChessEngine
 {
     private char[] buffer;
     private string moves;
     private string[] options;
+    private string go_options;
     private bool waiting_for_move;
 
-    public ChessEngineUCI (string[] options)
+    public ChessEngineUCI (string binary, string[] args, string[] options, string[] go_options)
     {
+        base (binary, args);
         this.options = options;
+        this.go_options = string.joinv (" ", go_options);
         buffer = new char[0];
         moves = "";
         starting.connect (start_cb);
@@ -30,7 +43,7 @@ public class ChessEngineUCI : ChessEngine
         else
             write_line ("position startpos");
         waiting_for_move = true;
-        write_line ("go wtime 30000 btime 30000");
+        write_line ("go wtime 30000 btime 30000 %s".printf (go_options));
     }
 
     public override void report_move (ChessMove move)
@@ -105,7 +118,7 @@ public class ChessEngineUCI : ChessEngine
                     break;
 
                 default:
-                    warning ("Unknown command: '%s'", line);
+                    debug ("Unknown command: '%s'", line);
                     break;
                 }
             }
@@ -117,7 +130,13 @@ public class ChessEngineUCI : ChessEngine
     private void configure ()
     {
         foreach (var o in options)
-            write_line ("setoption %s".printf (o));
+        {
+            var line = o.split (" ");
+            var option_value = line[line.length - 1];
+            line = line[0:line.length-1];
+            var option_name = string.joinv (" ", line);
+            write_line ("setoption name %s value %s".printf (option_name, option_value));
+        }
         write_line ("isready");
     }
 }

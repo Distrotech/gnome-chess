@@ -16,6 +16,9 @@ class GnomeChess
         Intl.bind_textdomain_codeset (Config.GETTEXT_PACKAGE, "UTF-8");
         Intl.textdomain (Config.GETTEXT_PACKAGE);
 
+        /* This can probably be removed if the desktop file is renamed to gnome-chess.desktop */
+        Environment.set_prgname ("glchess");
+
         Gtk.init (ref args);
 
         var c = new OptionContext (/* Arguments and description for --help text */

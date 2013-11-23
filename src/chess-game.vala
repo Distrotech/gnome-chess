@@ -1,3 +1,13 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 public enum Color
 {
     WHITE,
@@ -21,6 +31,16 @@ public class ChessPlayer : Object
     public signal void do_undo ();
     public signal bool do_resign ();
     public signal bool do_claim_draw ();
+
+    private bool _local_human = false;
+    public bool local_human
+    {
+        get { return _local_human; }
+        set
+        {
+            _local_human = value;
+        }
+    }
 
     public ChessPlayer (Color color)
     {
@@ -122,7 +142,7 @@ public class ChessPiece
                 c = 'r';
                 break;
             case PieceType.KNIGHT:
-                c = 'k';
+                c = 'n';
                 break;
             case PieceType.BISHOP:
                 c = 'b';
@@ -210,8 +230,8 @@ public class ChessMove
 
     public string get_fan ()
     {
-        const string white_piece_names[] = {"", "♞", "♝", "♜", "♛", "♚"};
-        const string black_piece_names[] = {"", "♘", "♗", "♖", "♕", "♔"};
+        const string white_piece_names[] = {"", "♜", "♞", "♝", "♛", "♚"};
+        const string black_piece_names[] = {"", "♖", "♘", "♗", "♕", "♔"};
         if (piece.color == Color.WHITE)
             return make_san ((string[]) white_piece_names);
         else
@@ -427,28 +447,29 @@ public class ChessState
             state.board[i] = board[i];
         state.piece_masks[Color.WHITE] = piece_masks[Color.WHITE];
         state.piece_masks[Color.BLACK] = piece_masks[Color.BLACK];
+        state.halfmove_clock = halfmove_clock;
 
         return state;
     }
 
     public bool equals (ChessState state)
     {
-        /* Check first if there is the same layout of pieces (unlikely),
-         * then the move castling and en-passant state are the same,
-         * then finally that it is the same move */
+        /*
+         * Check first if there is the same layout of pieces (unlikely),
+         * then that the same player is on move, then that the move castling
+         * and en-passant state are the same.  This follows the rules for
+         * determining threefold repetition:
+         *
+         * https://en.wikipedia.org/wiki/Threefold_repetition
+         */
         if (piece_masks[Color.WHITE] != state.piece_masks[Color.WHITE] ||
             piece_masks[Color.BLACK] != state.piece_masks[Color.BLACK] || 
+            current_player.color != state.current_player.color ||
             can_castle_kingside[Color.WHITE] != state.can_castle_kingside[Color.WHITE] ||
             can_castle_queenside[Color.WHITE] != state.can_castle_queenside[Color.WHITE] ||
             can_castle_kingside[Color.BLACK] != state.can_castle_kingside[Color.BLACK] ||
             can_castle_queenside[Color.BLACK] != state.can_castle_queenside[Color.BLACK] ||
-            en_passant_index != state.en_passant_index ||
-            (last_move != null) != (state.last_move != null) ||
-            last_move.piece.type != state.last_move.piece.type ||
-            last_move.r0 != state.last_move.r0 ||
-            last_move.f0 != state.last_move.f0 ||
-            last_move.r1 != state.last_move.r1 ||
-            last_move.f1 != state.last_move.f1)
+            en_passant_index != state.en_passant_index)
             return false;
 
         /* Finally check the same piece types are present */
@@ -657,11 +678,8 @@ public class ChessState
                     return false;
 
                 /* Square moved across can't be under attack */
-                for (int i = 0; i < 64; i++)
-                {
-                    if (move_with_coords (opponent, get_rank (i), get_file (i), get_rank (rook_end), get_file (rook_end), PieceType.QUEEN, false, false))
-                        return false;
-                }
+                if (!move_with_coords (player, r0, f0, get_rank (rook_end), get_file (rook_end), PieceType.QUEEN, false, true))
+                    return false;
             }
             break;
         default:
@@ -1002,8 +1020,37 @@ public class ChessState
                 }
             }
 
-            /* Three knights versus king can checkmate */
-            if (white_knight_count > 2 || black_knight_count > 2)
+            /*
+             * We count the following positions as insufficient:
+             *
+             * 1) king versus king
+             * 2) king and bishop versus king
+             * 3) king and knight versus king
+             * 4) king and bishop versus king and bishop with the bishops on the same color. (Any
+             *    number of additional bishops of either color on the same color of square due to
+             *    underpromotion do not affect the situation.)
+             *
+             * From: https://en.wikipedia.org/wiki/Draw_(chess)#Draws_in_all_games
+             *
+             * Note also that this follows FIDE rules, not USCF rules. E.g. K+N+N vs. K cannot be
+             * forced, so it's not counted as a draw.
+             *
+             * This is also what CECP engines will be expecting:
+             *
+             * "Note that (in accordance with FIDE rules) only KK, KNK, KBK and KBKB with all
+             * bishops on the same color can be claimed as draws on the basis of insufficient mating
+             * material. The end-games KNNK, KBKN, KNKN and KBKB with unlike bishops do have mate
+             * positions, and cannot be claimed. Complex draws based on locked Pawn chains will not
+             * be recognized as draws by most interfaces, so do not claim in such positions, but
+             * just offer a draw or play on."
+             *
+             * From: http://www.open-aurec.com/wbforum/WinBoard/engine-intf.html
+             *
+             * (In contrast, UCI seems to expect the interface to handle draws itself.)
+             */
+
+            /* Two knights versus king can checkmate (though not against an optimal opponent) */
+            if (white_knight_count > 1 || black_knight_count > 1)
                 return true;
 
             /* Bishop and knight versus king can checkmate */
@@ -1017,6 +1064,21 @@ public class ChessState
                 return true;
             if (black_bishop_on_white_square && black_bishop_on_black_square)
                 return true;
+
+            /* King and minor piece vs. King and knight is surprisingly not a draw */
+            if ((white_bishop_count > 0 || white_knight_count > 0) && black_knight_count > 0)
+                return true;
+            if ((black_bishop_count > 0 || black_knight_count > 0) && white_knight_count > 0)
+                return true;
+
+            /* King and bishop can checkmate vs. king and bishop if bishops are on opposite colors */
+            if (white_bishop_count > 0 && black_bishop_count > 0)
+            {
+                if (white_bishop_on_white_square && black_bishop_on_black_square)
+                    return true;
+                else if (white_bishop_on_black_square && black_bishop_on_white_square)
+                    return true;
+            }
         }
 
         return false;
@@ -1117,18 +1179,22 @@ public class ChessState
                 switch (move[i])
                 {
                 case 'q':
+                case 'Q':
                     promotion_type = PieceType.QUEEN;
                     i++;
                     break;
                 case 'n':
+                case 'N':
                     promotion_type = PieceType.KNIGHT;
                     i++;
                     break;
                 case 'r':
+                case 'R':
                     promotion_type = PieceType.ROOK;
                     i++;
                     break;
                 case 'b':
+                case 'B':
                     promotion_type = PieceType.BISHOP;
                     i++;
                     break;
@@ -1209,7 +1275,8 @@ public enum ChessResult
     IN_PROGRESS,
     WHITE_WON,
     BLACK_WON,
-    DRAW
+    DRAW,
+    BUG
 }
 
 public enum ChessRule
@@ -1222,7 +1289,8 @@ public enum ChessRule
     INSUFFICIENT_MATERIAL,
     RESIGN,
     ABANDONMENT,
-    DEATH
+    DEATH,
+    BUG
 }
 
 public class ChessGame : Object
@@ -1242,8 +1310,14 @@ public class ChessGame : Object
     public signal void started ();
     public signal void turn_started (ChessPlayer player);
     public signal void moved (ChessMove move);
+    public signal void superpaused ();
+    public signal void unpaused ();
     public signal void undo ();
     public signal void ended ();
+
+    public bool is_paused { get; private set; default = false; }
+    /* Like normal pause, but also draw pause game overlay */
+    public bool is_superpaused { get; private set; default = false; }
     
     public ChessState current_state
     {
@@ -1318,6 +1392,12 @@ public class ChessGame : Object
             (white as RemoteChessPlayerIface).do_move_remote.connect (remote_move_cb);
             (black as RemoteChessPlayerIface).do_move_remote.connect (remote_move_cb);
         }
+    }
+
+    ~ChessGame ()
+    {
+        if (_clock != null)
+            _clock.stop ();
     }
 
     private bool move_cb (ChessPlayer player, string move, bool apply)
@@ -1452,7 +1532,6 @@ public class ChessGame : Object
         {
             _clock.expired.connect (clock_expired_cb);
             _clock.active_color = current_player.color;
-            _clock.start ();
         }
 
         started ();
@@ -1490,28 +1569,67 @@ public class ChessGame : Object
         get { return move_stack.length() - 1; }
     }
 
-    private void stop (ChessResult result, ChessRule rule)
+    public void pause ()
     {
+        if (clock != null && result == ChessResult.IN_PROGRESS && !is_paused)
+        {
+            clock.pause ();
+            is_paused = true;
+        }
+    }
+
+    public void superpause ()
+    {
+        is_superpaused = true;
+        pause ();
+        /* Draw the pause game overlay */
+        superpaused ();
+    }
+
+    public void unpause ()
+    {
+        if (clock != null && result == ChessResult.IN_PROGRESS && is_paused)
+        {
+            clock.unpause ();
+            is_paused = false;
+            is_superpaused = false;
+            unpaused ();
+        }
+    }
+
+    public void stop (ChessResult result, ChessRule rule)
+    {
+        if (!is_started)
+            return;
         this.result = result;
         this.rule = rule;
         is_started = false;
+        if (_clock != null)
+            _clock.stop();
         ended ();
     }
 
     private bool is_three_fold_repeat ()
     {
-        var count = 1;
-
-        foreach (var state in move_stack.next)
+        foreach (var state in move_stack)
         {
-            if (current_state.equals (state))
-            {
-                count++;
-                if (count >= 3)
-                    return true;
-            }
+            if (state_repeated_times (state) >= 3)
+                return true;
         }
 
         return false;
+    }
+
+    public int state_repeated_times (ChessState s1)
+    {
+        var count = 1;
+
+        foreach (var s2 in move_stack)
+        {
+            if (s1 != s2 && s1.equals (s2))
+                count++;
+        }
+
+        return count;
     }
 }

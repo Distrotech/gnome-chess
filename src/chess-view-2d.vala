@@ -1,3 +1,13 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 private class ChessView2D : ChessView
 {
     private int border = 6;
@@ -114,9 +124,6 @@ private class ChessView2D : ChessView
 
         if (scene.show_numbering)
         {
-            string[] files = { "a", "b", "c", "d", "e", "f", "g", "h" };
-            string[] ranks = { "8", "7", "6", "5", "4", "3", "2", "1" };
-
             /* Files are centered individiual glyph width and combined glyph height,
              * ranks are centered on individual glyph widths and heights */
 
@@ -132,6 +139,27 @@ private class ChessView2D : ChessView
 
             double file_offset = -(square_size * 3.5);
             double rank_offset = -(square_size * 3.5);
+
+            string[] files;
+            string[] ranks;
+
+            Cairo.Matrix matrix = c.get_matrix ();
+
+            if (scene.board_angle == 180.0)
+            {
+                files = { "h", "g", "f", "e", "d", "c", "b", "a" };
+                ranks = { "1", "2", "3", "4", "5", "6", "7", "8" };
+
+                matrix.scale (-1, -1);
+            }
+            else
+            {
+                files = { "a", "b", "c", "d", "e", "f", "g", "h" };
+                ranks = { "8", "7", "6", "5", "4", "3", "2", "1" };
+            }
+
+            c.save ();
+            c.set_matrix (matrix);
 
             for (int i = 0; i < 8; i++)
             {
@@ -167,6 +195,16 @@ private class ChessView2D : ChessView
                 file_offset += square_size;
                 rank_offset += square_size;
             }
+
+            c.restore ();
+        }
+
+        /* Draw pause overlay */
+        if (scene.game.is_superpaused)
+        {
+            c.rotate (Math.PI * scene.board_angle / 180.0);
+            draw_paused_overlay (c);
+            return true;
         }
 
         /* Draw the pieces */
@@ -209,9 +247,6 @@ private class ChessView2D : ChessView
 
     private void draw_piece (Cairo.Context c, Cairo.Surface surface, int size, ChessPiece piece, double alpha)
     {
-        if (scene.board_side == "facetoface" && piece.color == Color.BLACK)
-            c.rotate (Math.PI);
-
         c.translate (-size / 2, -size / 2);
 
         int offset = piece.type;
@@ -225,7 +260,7 @@ private class ChessView2D : ChessView
 
     public override bool button_press_event (Gdk.EventButton event)
     {
-        if (scene.game == null || event.button != 1)
+        if (scene.game == null || event.button != 1 || scene.game.is_paused)
             return false;
 
         int file = (int) Math.floor((event.x - 0.5 * get_allocated_width () + square_size * 4) / square_size);

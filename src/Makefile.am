@@ -26,8 +26,7 @@ gnome_chess_SOURCES = \
 	chess-scene.vala \
 	chess-view.vala \
 	chess-view-2d.vala \
-	chess-view-3d.vala \
-	history.vala
+	chess-view-3d.vala
 
 gnome_chess_channel_handler_SOURCES = \
 	config.vapi \
@@ -50,8 +49,7 @@ gnome_chess_channel_handler_SOURCES = \
 	chess-scene.vala \
 	chess-view.vala \
 	chess-view-2d.vala \
-	chess-view-3d.vala \
-	history.vala
+	chess-view-3d.vala
 
 test_chess_game_SOURCES = \
 	chess-bitboard.vala \
@@ -59,6 +57,7 @@ test_chess_game_SOURCES = \
 	chess-game.vala \
 	test-chess-game.vala
 test_chess_game_CFLAGS = \
+	-w \
 	$(TEST_CFLAGS)
 test_chess_game_LDADD = \
 	$(TEST_LIBS)
@@ -71,6 +70,7 @@ test_chess_pgn_SOURCES = \
 	chess-pgn.vala \
 	test-chess-pgn.vala
 test_chess_pgn_CFLAGS = \
+	-w \
 	$(TEST_CFLAGS)
 test_chess_pgn_LDADD = \
 	$(TEST_LIBS)
@@ -80,9 +80,11 @@ test_chess_pgn_VALAFLAGS = \
 gnome_chess_CFLAGS = \
 	-DVERSION=\"$(VERSION)\" \
 	-DGETTEXT_PACKAGE=\"$(GETTEXT_PACKAGE)\" \
-	-DPKGDATADIR=\"@datadir@/gnome-chess\" \
+	-DPKGDATADIR=\"$(pkgdatadir)/\" \
+	-DLOCALEDIR=\"$(localedir)\" \
+	-DSYSCONFDIR=\"$(sysconfdir)\" \
 	-I$(top_srcdir)/libgames-contacts \
-	-DLOCALEDIR=\"@localedir@\" \
+	-w \
 	$(GNOME_CHESS_CFLAGS)
 
 gnome_chess_LDADD = \
@@ -115,9 +117,8 @@ gnome_chess_channel_handler_VALAFLAGS = $(gnome_chess_VALAFLAGS)
 
 CLEANFILES = \
 	$(patsubst %.vala,%.c,$(filter %.vala, $(SOURCES))) \
-	*_vala.stamp
-
-DISTCLEANFILES = \
-	Makefile.in
+	*_vala.stamp \
+	*.log \
+	*.trs
 
 -include $(top_srcdir)/git.mk

@@ -1,11 +1,22 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 public class ChessEngineCECP : ChessEngine
 {
     private char[] buffer;
     private bool moving = false;
     private string[] options;
 
-    public ChessEngineCECP (string[] options)
+    public ChessEngineCECP (string binary, string[] args, string[] options)
     {
+        base (binary, args);
         this.options = options;
         starting.connect (start_cb);
     }
@@ -13,6 +24,7 @@ public class ChessEngineCECP : ChessEngine
     private void start_cb ()
     {
         write_line ("xboard");
+        write_line ("random");
         foreach (var o in options)
             write_line (o);
         ready = true;
@@ -52,14 +64,36 @@ public class ChessEngineCECP : ChessEngine
                 }
             }
 
-            if (line.has_prefix ("Illegal move: "))
+            if (line == "resign" || line == "tellics resign" ||
+                     (line.has_prefix ("1-0 {") && line.contains("resign")) ||
+                     (line.has_prefix ("0-1 {") && line.contains("resign")))
             {
+                resigned ();
             }
-            else if (line == "resign" || line == "tellics resign")
+            else if (line.has_prefix ("Illegal move: "))
             {
+                stop ();
+                error ();
+            }
+            else if (line.has_prefix ("1-0") || line.has_prefix ("0-1"))
+            {
+                /* The engine thinks the game is over and will not play on. */
+                stop ();
+            }
+            else if (line == "game is a draw" ||
+                     line == "draw" ||
+                     line == "Draw" ||
+                     line.has_prefix ("1/2-1/2"))
+            {
+                claim_draw ();
             }
             else if (line == "offer draw")
             {
+                offer_draw ();
+            }
+            else
+            {
+                debug ("Unknown command: '%s'", line);
             }
 
             buffer = buffer[offset+1:buffer.length];
@@ -89,6 +123,16 @@ public class ChessEngineCECP : ChessEngine
 
     public override void undo ()
     {
+        /*
+         * We're undoing only the most recent move here, so there's no need to
+         * call Undo twice, or to use fanciness like the remove command. This
+         * function will be called twice if we need to undo two moves in a row.
+         *
+         * force is not necessary for GNUChess or Phalanx, but it's required by
+         * CECP and most other engines will move again immediately without it
+         * (leading to an apparent AI hang).
+         */
+        write_line ("force");
         write_line ("undo");
     }
 }

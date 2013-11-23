@@ -1,3 +1,13 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 using GL;
 using GLU;
 using GLX;
@@ -82,6 +92,7 @@ private class ChessView3D : ChessView
         }
         catch (Error e)
         {
+            warning ("failed to load 3ds: %s", e.message);
         }
         create_board ();
     }
@@ -229,6 +240,14 @@ private class ChessView3D : ChessView
 
     public override bool draw (Cairo.Context c)
     {
+        if (scene.game.is_superpaused)
+        {
+            glXMakeCurrent (display, X.None, (GLX.Context) null);
+            c.translate (get_allocated_width () / 2, get_allocated_height () / 2);
+            draw_paused_overlay (c);
+            return true;
+        }
+
         GLfloat[] jitters = {0.0033922635f, 0.3317967229f, 0.2806016275f, -0.2495619123f, -0.273817106f, -0.086844639f};
 
         if (!start_gl ())
@@ -243,8 +262,9 @@ private class ChessView3D : ChessView
 
         for (var i = 0; i < n_passes; i++)
         {
-            var bg = style.bg[get_state ()];
-            glClearColor (bg.red / 65535.0f, bg.green / 65535.0f, bg.blue / 65535.0f, 1.0f);
+            var window = (Gtk.Window) get_toplevel();
+            var bg = window.get_style_context ().get_background_color (window.get_state_flags ());
+            glClearColor ((float) bg.red, (float) bg.green, (float) bg.blue, 1.0f);
             glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glEnable (GL_DEPTH_TEST);
@@ -269,7 +289,8 @@ private class ChessView3D : ChessView
             glTranslatef (-OFFSET, 0.0f, OFFSET);
 
             draw_board ();
-            draw_numbering ();
+            if (scene.show_numbering)
+                draw_numbering ();
             draw_pieces ();
 
             glPopMatrix ();
@@ -313,9 +334,9 @@ private class ChessView3D : ChessView
             for (var file = 0; file < 8; file++)
             {
                 if ((file + rank) % 2 == 0)
-                    glColor3f (0xee / 255f, 0xee / 255f, 0xec / 255f);
-                else
                     glColor3f (0xba / 255f, 0xbd / 255f, 0xb6 / 255f);
+                else
+                    glColor3f (0xee / 255f, 0xee / 255f, 0xec / 255f);
 
                 glBegin (GL_QUADS);
                 GLfloat x0 = BOARD_BORDER + (file * SQUARE_WIDTH);
@@ -340,7 +361,7 @@ private class ChessView3D : ChessView
 
     private void draw_numbering ()
     {
-        var text_width = BOARD_BORDER * 0.8f;
+        var text_width = BOARD_BORDER * 0.7f;
         var text_offset = (BOARD_BORDER + BOARD_CHAMFER) * 0.5f;
         var offset = BOARD_BORDER + SQUARE_WIDTH * 0.5f;
         var white_z_offset = -text_offset;
@@ -381,14 +402,28 @@ private class ChessView3D : ChessView
         glTranslatef (x, 0.0f, z);
 
         glBegin (GL_QUADS);
-        glTexCoord2f (l, 0.0f);
-        glVertex3f (-width/2, 0.0f, -width/2);
-        glTexCoord2f (l, 1.0f);
-        glVertex3f (-width/2, 0.0f, width/2);
-        glTexCoord2f (l + w, 1.0f);
-        glVertex3f (width/2, 0.0f, width/2);
-        glTexCoord2f (l + w, 0.0f);
-        glVertex3f (width/2, 0.0f, -width/2);
+        if (scene.board_angle == 180.0)
+        {
+            glTexCoord2f (l + w, 1.0f);
+            glVertex3f (-width/2, 0.0f, -width/2);
+            glTexCoord2f (l + w, 0.0f);
+            glVertex3f (-width/2, 0.0f, width/2);
+            glTexCoord2f (l, 0.0f);
+            glVertex3f (width/2, 0.0f, width/2);
+            glTexCoord2f (l, 1.0f);
+            glVertex3f (width/2, 0.0f, -width/2);
+        }
+        else
+        {
+            glTexCoord2f (l, 0.0f);
+            glVertex3f (-width/2, 0.0f, -width/2);
+            glTexCoord2f (l, 1.0f);
+            glVertex3f (-width/2, 0.0f, width/2);
+            glTexCoord2f (l + w, 1.0f);
+            glVertex3f (width/2, 0.0f, width/2);
+            glTexCoord2f (l + w, 0.0f);
+            glVertex3f (width/2, 0.0f, -width/2);
+        }
         glEnd ();
 
         glPopMatrix ();
@@ -494,7 +529,7 @@ private class ChessView3D : ChessView
 
     public override bool button_press_event (Gdk.EventButton event)
     {
-        if (scene.game == null || event.button != 1)
+        if (scene.game == null || event.button != 1 || scene.game.is_paused)
             return false;
 
         if (!start_gl ())
@@ -624,7 +659,7 @@ private class ChessView3D : ChessView
         c.set_font_size (width);
         Cairo.FontExtents extents;
         c.font_extents (out extents);
-        var scale = width / (extents.ascent + extents.descent);
+        var scale = width / (extents.height + extents.descent);
 
         var yoffset = height * 0.5;
         var xoffset = width * 0.5;
@@ -657,11 +692,14 @@ private class ChessView3D : ChessView
     
     private void draw_centered_text (Cairo.Context c, double x, double y, double scale, string text)
     {
-        Cairo.TextExtents extents;
-        c.text_extents (text, out extents);
+        Cairo.TextExtents char_extents;
+        c.text_extents (text, out char_extents);
+        /* Don't want the letters to be centered vertically. */
+        Cairo.TextExtents fake_extents;
+        c.text_extents ("abcdefgh", out fake_extents);
         c.save ();
         c.translate (x, y);
-        c.move_to (-extents.width*scale/2, extents.height*scale/2);
+        c.move_to (-char_extents.width*scale/2, fake_extents.height*scale/2);
         c.scale (scale, scale);
         c.show_text (text);
         c.restore ();

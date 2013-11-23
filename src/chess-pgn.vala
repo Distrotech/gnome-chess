@@ -1,3 +1,13 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 private int str_index (string name)
 {
     if (name == "Event")
@@ -114,6 +124,16 @@ public class PGNGame : Object
         get { return tags.lookup ("TimeControl"); }
         set { tags.insert ("TimeControl", value); }
     }
+    public string? white_time_left
+    {
+        get { return tags.lookup ("WhiteTimeLeft"); }
+        set { tags.insert ("WhiteTimeLeft", value); }
+    }
+    public string? black_time_left
+    {
+        get { return tags.lookup ("BlackTimeLeft"); }
+        set { tags.insert ("BlackTimeLeft", value); }
+    }
     public bool set_up
     {
         get { string? v = tags.lookup ("SetUp"); return v != null && v == "1" ? true : false; }
@@ -128,6 +148,26 @@ public class PGNGame : Object
     {
         get { return tags.lookup ("Termination"); }
         set { tags.insert ("Termination", value); }
+    }
+    public string? white_ai
+    {
+        get { return tags.lookup ("WhiteAI"); }
+        set { tags.insert ("WhiteAI", value); }
+    }
+    public string? white_level
+    {
+        get { return tags.lookup ("WhiteLevel"); }
+        set { tags.insert ("WhiteLevel", value); }
+    }
+    public string? black_ai
+    {
+        get { return tags.lookup ("BlackAI"); }
+        set { tags.insert ("BlackAI", value); }
+    }
+    public string? black_level
+    {
+        get { return tags.lookup ("BlackLevel"); }
+        set { tags.insert ("BlackLevel", value); }
     }
 
     public PGNGame ()

@@ -1,10 +1,23 @@
-public class ChessEngine : Object
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
+public abstract class ChessEngine : Object
 {
-    public string binary;
+    private string binary;
+    private string[] args;
+
     private Pid pid;
     private int stdin_fd;
     private int stderr_fd;
     private IOChannel stdout_channel;
+    private uint stdout_watch_id;
 
     protected virtual void process_input (char[] data) {}
 
@@ -13,6 +26,9 @@ public class ChessEngine : Object
     public signal void moved (string move);
     public signal void resigned ();
     public signal void stopped ();
+    public signal void error ();
+    public signal void claim_draw ();
+    public signal void offer_draw ();
     
     private bool _ready = false;
     public bool ready
@@ -27,10 +43,20 @@ public class ChessEngine : Object
             return _ready;
         }
     }
-    
+
+    public ChessEngine (string binary, string[] args)
+    {
+        this.binary = binary;
+        this.args = args;
+    }
+
     public bool start ()
     {
-        string[] argv = { binary, null };
+        string[] argv = {binary};
+        foreach (var arg in args)
+            argv += arg;
+        argv += null;
+
         int stdout_fd;
         try
         {
@@ -41,7 +67,7 @@ public class ChessEngine : Object
         }
         catch (SpawnError e)
         {
-            stderr.printf ("Failed to execute chess engine: %s\n", e.message);
+            warning ("Failed to execute chess engine: %s\n", e.message);
             return false;
         }
 
@@ -54,9 +80,9 @@ public class ChessEngine : Object
         }
         catch (IOChannelError e)
         {
-            stderr.printf ("Failed to set input from chess engine to non-blocking: %s", e.message);
+            warning ("Failed to set input from chess engine to non-blocking: %s", e.message);
         }
-        stdout_channel.add_watch (IOCondition.IN, read_cb);
+        stdout_watch_id = stdout_channel.add_watch (IOCondition.IN, read_cb);
 
         starting ();
 
@@ -65,29 +91,25 @@ public class ChessEngine : Object
 
     private void engine_stopped_cb (Pid pid, int status)
     {
+        Process.close_pid (pid);
         stopped ();
     }
 
-    public virtual void start_game ()
-    {
-    }
+    public abstract void start_game ();
 
-    public virtual void request_move ()
-    {
-    }
+    public abstract void request_move ();
 
-    public virtual void report_move (ChessMove move)
-    {
-    }
+    public abstract void report_move (ChessMove move);
 
-    public virtual void undo ()
-    {
-    }
+    public abstract void undo ();
 
     public void stop ()
     {
+        if (stdout_watch_id > 0)
+            Source.remove (stdout_watch_id);
+
         if (pid != 0)
-            Posix.kill (pid, Posix.SIGTERM);        
+            Posix.kill (pid, Posix.SIGTERM);
     }
 
     private bool read_cb (IOChannel source, IOCondition condition)
@@ -103,10 +125,12 @@ public class ChessEngine : Object
         }
         catch (ConvertError e)
         {
+            warning ("Failed to read from engine: %s", e.message);
             return false;
         }
         catch (IOChannelError e)
         {
+            warning ("Failed to read from engine: %s", e.message);
             return false;
         }
 

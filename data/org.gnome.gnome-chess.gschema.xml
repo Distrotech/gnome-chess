@@ -21,7 +21,6 @@
     <value value="1" nick="black"/>
     <value value="2" nick="human"/>
     <value value="3" nick="current"/>
-    <value value="4" nick="facetoface"/>
   </enum>
 
   <enum id="org.gnome.gnome-chess.Difficulty">
@@ -68,7 +67,7 @@
       <description>The height of preferences screen in pixels.</description>
     </key>
     <key type="i" name="game-screen-width">
-      <default>500</default>
+      <default>700</default>
       <summary>The width of window for gaming with a local player or a robot</summary>
       <description>The width of window for gaming with a local player or a robot.</description>
     </key>
@@ -165,16 +164,6 @@
       <default>false</default>
       <summary>A flag to enable board numbering</summary>
       <description>A flag to enable board numbering</description>
-    </key>
-    <key type="b" name="show-history">
-      <default>true</default>
-      <summary>A flag to enable the move history browser</summary>
-      <description>A flag to enable the move history browser</description>
-    </key>
-    <key type="b" name="show-toolbar">
-      <default>false</default>
-      <summary>A flag to enable the toolbar</summary>
-      <description>A flag to enable the toolbar</description>
     </key>
     <key type="s" name="save-directory">
       <default>''</default>

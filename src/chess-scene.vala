@@ -1,3 +1,13 @@
+/*
+ * Copyright (C) 2010-2013 Robert Ancell
+ *
+ * This program is free software: you can redistribute it and/or modify it under
+ * the terms of the GNU General Public License as published by the Free Software
+ * Foundation, either version 2 of the License, or (at your option) any later
+ * version. See http://www.gnu.org/copyleft/gpl.html the full text of the
+ * license.
+ */
+
 public class ChessModel
 {
     public ChessPiece piece;
@@ -72,17 +82,27 @@ public class ChessScene : Object
     public int selected_rank = -1;
     public int selected_file = -1;
 
+    private uint animate_timeout_id = 0;
+
     private ChessGame? _game = null;
     public ChessGame? game
     {
         get { return _game; }
         set
         {
+            if (animate_timeout_id != 0)
+            {
+                Source.remove (animate_timeout_id);
+                animate_timeout_id = 0;
+                animating = false;
+            }
             _game = value;
             _move_number = -1;
             selected_rank = -1;
             selected_file = -1;
             _game.moved.connect (moved_cb);
+            _game.superpaused.connect (paused_cb);
+            _game.unpaused.connect (unpaused_cb);
             _game.undo.connect (undo_cb);
             update_board ();
         }
@@ -151,7 +171,6 @@ public class ChessScene : Object
              {
              default:
              case "white":
-             case "facetoface":
                  return 0.0;
              case "black":
                  return 180.0;
@@ -180,7 +199,7 @@ public class ChessScene : Object
 
     public void select_square (int file, int rank)
     {
-        if (game == null)
+        if (game == null || !game.current_player.local_human)
             return;
 
         /* Can only control when showing the current move */
@@ -225,6 +244,16 @@ public class ChessScene : Object
     private void moved_cb (ChessGame game, ChessMove move)
     {
         update_board ();
+    }
+
+    private void paused_cb (ChessGame game)
+    {
+        changed ();
+    }
+
+    private void unpaused_cb (ChessGame game)
+    {
+        changed ();
     }
 
     private void undo_cb (ChessGame game)
@@ -304,7 +333,7 @@ public class ChessScene : Object
             game.add_hold ();
 
             /* Animate every 10ms (up to 100fps) */
-            Timeout.add (10, animate_cb, Priority.DEFAULT_IDLE);
+            animate_timeout_id = Timeout.add (10, animate_cb, Priority.DEFAULT_IDLE);
         }
     }
 

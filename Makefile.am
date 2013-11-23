@@ -2,4 +2,10 @@ SUBDIRS = libgames-contacts tests data src help po
 
 EXTRA_DIST = autogen.sh NEWS
 
+DISTCLEANFILES = test-driver
+
+MAINTAINERCLEANFILES = \
+	$(GITIGNORE_MAINTAINERCLEANFILES_TOPLEVEL) \
+	$(GITIGNORE_MAINTAINERCLEANFILES_MAKEFILE_IN)
+
 -include $(top_srcdir)/git.mk
