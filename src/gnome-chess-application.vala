@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 /*
  * Copyright (C) 2010-2013 Robert Ancell
  *
@@ -10,7 +8,6 @@
  * license.
  */
 
->>>>>>> gnome-chess-application-rename
 /* Workaround for https://bugzilla.gnome.org/show_bug.cgi?id=647122 */
 extern void gtk_file_filter_set_name (Gtk.FileFilter filter, string name);
 
@@ -19,7 +16,6 @@ public class Application : Gtk.Application
 <<<<<<< HEAD
     protected Settings settings;
     protected Settings settings_common;
-    private History history;
     private Gtk.Builder builder;
     protected Gtk.Builder preferences_builder;
     protected ChessLauncher? launcher = null;
@@ -27,19 +23,18 @@ public class Application : Gtk.Application
 
     /* Chess game screen widgets */
     protected Gtk.Widget game_vbox;
-    protected Gtk.Widget save_menu;
-    protected Gtk.Widget save_as_menu;
-    protected Gtk.MenuItem fullscreen_menu;
     protected Gtk.InfoBar info_bar;
     protected Gtk.Label info_title_label;
     protected Gtk.Label info_label;
     protected Gtk.Container view_container;
     protected ChessScene scene;
     protected ChessView view;
-    private Gtk.Widget undo_menu;
-    private Gtk.Widget undo_button;
-    protected Gtk.Widget resign_menu;
-    private Gtk.Widget resign_button;
+    protected Gtk.Widget save_button;
+    protected Gtk.Widget undo_button;
+    protected Gtk.Widget pause_button;
+    protected Gtk.Widget claim_draw_button;
+    protected Gtk.Widget resign_button;
+    protected Gtk.Widget fullscreen_button;
     protected Gtk.Widget first_move_button;
     protected Gtk.Widget prev_move_button;
     protected Gtk.Widget next_move_button;
@@ -49,60 +44,15 @@ public class Application : Gtk.Application
     protected Gtk.Widget black_time_label;
 
     protected Gtk.Dialog? preferences_dialog = null;
-=======
-    private Settings settings;
-    private Gtk.Builder builder;
-    private Gtk.Builder preferences_builder;
-    private Gtk.Window window;
-    private Gtk.InfoBar info_bar;
-    private Gtk.Label info_title_label;
-    private Gtk.Label info_label;
-    private Gtk.Container view_container;
-    private ChessScene scene;
-    private ChessView view;
-    private Gtk.Widget save_button;
-    private Gtk.Widget undo_button;
-    private Gtk.Widget pause_button;
-    private Gtk.Widget claim_draw_button;
-    private Gtk.Widget resign_button;
-    private Gtk.Widget fullscreen_button;
-    private Gtk.Widget first_move_button;
-    private Gtk.Widget prev_move_button;
-    private Gtk.Widget next_move_button;
-    private Gtk.Widget last_move_button;
-    private Gtk.ComboBox history_combo;
-    private Gtk.Widget white_time_label;
-    private Gtk.Widget black_time_label;
 
-    private Gtk.Dialog? preferences_dialog = null;
-    private Gtk.ComboBox side_combo;
-    private Gtk.ComboBox difficulty_combo;
-    private Gtk.ComboBox duration_combo;
-    private Gtk.Adjustment duration_adjustment;
-    private Gtk.Container custom_duration_box;
-    private Gtk.ComboBox custom_duration_units_combo;
     private uint save_duration_timeout = 0;
->>>>>>> gnome-chess-application-rename
+
     private Gtk.FileChooserDialog? open_dialog = null;
     private Gtk.InfoBar? open_dialog_info_bar = null;
     private Gtk.Label? open_dialog_error_label = null;
     private Gtk.FileChooserDialog? save_dialog = null;
     private Gtk.InfoBar? save_dialog_info_bar = null;
     private Gtk.Label? save_dialog_error_label = null;
-<<<<<<< HEAD
-    protected Gtk.AboutDialog? about_dialog = null;
-
-    protected PGNGame pgn_game;
-    protected ChessGame game;
-    private bool in_history;
-    private File game_file;
-    private bool game_needs_saving;
-    private string engines_file;
-    private List<AIProfile> ai_profiles;
-    protected ChessPlayer? opponent = null;
-    private ChessPlayer? human_player = null;
-    protected ChessEngine? opponent_engine = null;
-=======
     private Gtk.AboutDialog? about_dialog = null;
 
     private PGNGame pgn_game;
@@ -111,6 +61,7 @@ public class Application : Gtk.Application
     private string autosave_filename;
     private File game_file;
     private bool game_needs_saving;
+    private string engines_file;
     private string? saved_filename = null;
     private List<AIProfile> ai_profiles;
     private ChessPlayer? opponent = null;
@@ -138,7 +89,6 @@ public class Application : Gtk.Application
         { "about", about_cb },
         { "quit", quit_cb },
     };
->>>>>>> gnome-chess-application-rename
 
     public Application (File? game_file)
     {
