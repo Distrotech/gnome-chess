@@ -6,18 +6,27 @@
     <title type='link' role="trail"><media type="image" src="figures/logo.png"/></title>
     <title type='link'>GNOME Chess</title>
     <title type='text'>GNOME Chess</title>
-    <revision pkgversion="3.4" version="0.1" date="2011-12-10" status="draft"/>
+    <revision pkgversion="3.14" version="0.1" date="2014-06-30" status="review"/>
     <credit type="author">
       <name>Tiffany Antopolski</name>
-      <email>tiffany.antopolski@gmail.com</email>
+      <email its:translate="no">tiffany.antopolski@gmail.com</email>
     </credit>
-    <license>
-      <p>Creative Commons Share Alike 3.0</p>
-    </license>
+    <credit type="editor">
+      <name>Rashi Aswani</name>
+      <email its:translate="no">aswanirashi19@gmail.com</email>
+    </credit>
+
+  <include href="legal.xml" xmlns="http://www.w3.org/2001/XInclude" />
+
   </info>
 
-<title><media type="image" src="figures/logo32.png">GNOME Chess logo</media>GNOME Chess</title>
- <p><app>GNOME Chess</app> is GNOME's chess game. It lets you play against the computer or another person. GNOME Chess can detect known <link xref="chess-engines">chess engines</link> for computer players. It also allows you to play against other people over a <link xref="chess-engines">network</link>.</p>
+  <title><media type="image" src="figures/logo32.png">GNOME Chess logo</media>
+  GNOME Chess</title>
+  <p><app>GNOME Chess</app> is GNOME's chess game. It lets you play against the
+  computer or another person. GNOME Chess can detect known
+  <link xref="chess-engines">chess engines</link> for computer players. It also
+  allows you to play against other people over a <link xref="chess-engines">
+  network</link>.</p>
 
    <section id="play" style="2column">
     <title>Game Play</title>
@@ -34,6 +43,4 @@
    <section id="get-involved" style="2column">
     <title>Get Involved</title>
    </section>
-
-
 </page>
