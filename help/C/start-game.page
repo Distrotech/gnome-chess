@@ -1,0 +1,33 @@
+<page xmlns="http://projectmallard.org/1.0/"
+      type="topic"
+      id="start-game">
+
+  <info>
+    <link type="guide" xref="index#play"/>
+    <revision version="3.14" date="2014-07-3" status="review"/>
+
+    <credit type="author">
+      <name>Rashi Aswani</name>
+      <email>aswanirashi19@gmail.com</email>
+      <years>2014</years>
+    </credit>
+
+    <include href="legal.xml" xmlns="http://www.w3.org/2001/XInclude" />
+
+  </info>
+
+  <title>Start a new game</title>
+
+  <p>You can start playing a new game, save the current game and continue
+  playing it after sometime. To start a new game: </p>
+    <steps>
+      <item><p>Click the <gui style="button">New Game</gui> button on the
+       toolbar.</p></item>
+      <item><p>A dialog box appears which lets you save the current game to
+      play it later or to simply leave the game. To save the current game, and
+      continue it later, select <gui style="button">Save game for later</gui>.
+      To leave the game without saving, select <gui style="buttton">Abandon
+      game</gui>.</p></item>
+    </steps>
+
+</page>
