@@ -36,7 +36,7 @@
     <item><p>The king may not currently be in check, but castling is
     illegal if it would place the king in check.</p></item>
     <item><p>The king and the rook must be on the same rank (to exclude castling
-    with a promoted pawn).</p>
+    with a promoted pawn).</p></item>
   </list>
 
   <p>The player is said to be in check, when a king is under direct attack by
