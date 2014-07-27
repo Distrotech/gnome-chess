@@ -45,4 +45,33 @@
   the opponent; this occurs when the opponent's king is in check, and there are
   no moves that remove the king from attack.</p>
   </section>
+  <section id="rules-rook">
+  <title>Rook</title>
+  <p>The rook moves any number of vacant squares vertically or horizontally.
+  </p>
+  </section>
+  <section id="rules-queen">
+  <title>Queen</title>
+  <p>The queen can move any number of vacant squares diagonally, horizontally,
+  or vertically.</p>
+  </section>
+  <section id="rules-knight">
+  <title>Knight</title>
+  <p>The knight moves making an "L" shape, two spaces horizontally and one space
+  vertically or vice versa. It can jump over occupied squares.</p>
+  </section>
+  <section id="rules-pawn">
+  <title>Pawn</title>
+  <p>Pawns follow different rules while moving, and capturing.</p>
+  <list>
+    <item><p>If a pawn has not moved yet, it has an option of moving one or two
+    squares forward, if the squares ahead are vacant.</p></item>
+    <item><p>A pawn cannot move backward.</p></item>
+    <item><p>Pawns can capture an enemy piece if it lies diagonally in front of
+    it.</p></item>
+    <item><p>If a pawn advances all the way to its eighth rank, it is then
+    promoted (converted) to a queen, rook, bishop, or knight of the same color.
+    </p></item>
+  </list>
+  </section>
 </page>
